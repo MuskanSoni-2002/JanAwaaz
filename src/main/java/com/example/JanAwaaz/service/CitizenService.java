@@ -32,7 +32,7 @@ public class CitizenService {
     public List<Citizen> getAllCitizens() {
         return citizenRepo.findAll();
     }
-    public Citizen patchCitizen(Citizen citizen, Long citizenId){
+    public Citizen patchCitizen(Long citizenId, Citizen citizen){
         Citizen existingCitizen = citizenRepo.findById(citizenId)
                 .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with id: " + citizenId));
 
