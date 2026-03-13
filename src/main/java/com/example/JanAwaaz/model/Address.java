@@ -21,11 +21,6 @@ public class Address {
 
     private String addressLine2;
 
-    private String landmark;
-
-    @Column(nullable = false)
-    private String locality;
-
     @Column(nullable = false)
     private String city;
 
