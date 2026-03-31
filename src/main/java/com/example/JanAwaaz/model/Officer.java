@@ -1,5 +1,7 @@
 package com.example.JanAwaaz.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.example.JanAwaaz.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -28,6 +30,7 @@ public class Officer {
     private String phoneNumber;
 
     @Column(nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Column(nullable = false)
@@ -35,6 +38,12 @@ public class Officer {
 
     @Column(nullable = false)
     private Boolean active;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
+
+    private Boolean forcePasswordChange;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

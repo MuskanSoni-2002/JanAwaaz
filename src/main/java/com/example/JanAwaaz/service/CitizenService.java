@@ -18,13 +18,6 @@ public class CitizenService {
     @Autowired
     private AddressRepository addressRepo;
 
-    public Citizen createCitizen(Citizen citizen) {
-        if (citizen.getAddress() != null) {
-            Address savedAddress = addressRepo.save(citizen.getAddress());
-            citizen.setAddress(savedAddress);
-        }
-        return citizenRepo.save(citizen);
-    }
     public Citizen getCitizenById(Long citizenId){
         return citizenRepo.findById(citizenId)
                 .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with id: " + citizenId));
@@ -32,7 +25,7 @@ public class CitizenService {
     public List<Citizen> getAllCitizens() {
         return citizenRepo.findAll();
     }
-    public Citizen patchCitizen(Citizen citizen, Long citizenId){
+    public Citizen patchCitizen(Long citizenId, Citizen citizen){
         Citizen existingCitizen = citizenRepo.findById(citizenId)
                 .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with id: " + citizenId));
 

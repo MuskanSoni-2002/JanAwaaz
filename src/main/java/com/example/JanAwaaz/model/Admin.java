@@ -1,5 +1,6 @@
 package com.example.JanAwaaz.model;
 
+import com.example.JanAwaaz.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,6 +30,10 @@ public class Admin {
 
     @Column(nullable = false)
     private Boolean active;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

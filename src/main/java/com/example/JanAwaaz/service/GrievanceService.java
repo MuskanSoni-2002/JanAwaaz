@@ -6,9 +6,10 @@ import com.example.JanAwaaz.model.enums.Status;
 import com.example.JanAwaaz.repository.DepartmentRepository;
 import com.example.JanAwaaz.repository.GrievanceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
-
+@Service
 public class GrievanceService {
     @Autowired
     private GrievanceRepository GrievanceRepo;
