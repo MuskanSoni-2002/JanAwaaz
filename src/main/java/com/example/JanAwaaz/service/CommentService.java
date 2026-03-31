@@ -4,10 +4,11 @@ import com.example.JanAwaaz.exception.ResourceNotFoundException;
 import com.example.JanAwaaz.model.Comment;
 import com.example.JanAwaaz.repository.CommentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
+@Service
 public class CommentService {
     @Autowired
     private CommentRepository CommentRepo;

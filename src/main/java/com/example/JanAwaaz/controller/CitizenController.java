@@ -15,10 +15,6 @@ public class CitizenController {
     @Autowired
     private CitizenService citizenService;
 
-    @PostMapping
-    public ResponseEntity<Citizen> createCitizen(@RequestBody Citizen citizen){
-        return new ResponseEntity<>(citizenService.createCitizen(citizen), HttpStatus.CREATED);
-    }
     @GetMapping("/{citizenId}")
     public ResponseEntity<Citizen> getCitizenById(@PathVariable Long citizenId){
         return ResponseEntity.ok(citizenService.getCitizenById(citizenId));
