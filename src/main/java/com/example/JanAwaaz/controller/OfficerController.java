@@ -1,9 +1,9 @@
 package com.example.JanAwaaz.controller;
 
-import com.example.JanAwaaz.dto.OfficerCreateRequestDto;
-import com.example.JanAwaaz.dto.OfficerCreateResponseDto;
-import com.example.JanAwaaz.dto.OfficerPasswordUpdateRequestDto;
-import com.example.JanAwaaz.dto.OfficerPatchRequestDto;
+import com.example.JanAwaaz.dto.officer.OfficerCreateRequestDto;
+import com.example.JanAwaaz.dto.officer.OfficerCreateResponseDto;
+import com.example.JanAwaaz.dto.officer.OfficerPasswordUpdateRequestDto;
+import com.example.JanAwaaz.dto.officer.OfficerPatchRequestDto;
 import com.example.JanAwaaz.model.Officer;
 import com.example.JanAwaaz.service.OfficerService;
 import jakarta.validation.Valid;

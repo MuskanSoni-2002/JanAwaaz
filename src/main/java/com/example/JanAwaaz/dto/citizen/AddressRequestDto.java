@@ -1,4 +1,4 @@
-package com.example.JanAwaaz.dto;
+package com.example.JanAwaaz.dto.citizen;
 import jakarta.validation.constraints.NotBlank;
 
 public record AddressRequestDto(

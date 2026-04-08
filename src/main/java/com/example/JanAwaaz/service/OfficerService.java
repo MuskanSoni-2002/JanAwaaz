@@ -1,9 +1,9 @@
 package com.example.JanAwaaz.service;
 
-import com.example.JanAwaaz.dto.OfficerCreateRequestDto;
-import com.example.JanAwaaz.dto.OfficerCreateResponseDto;
-import com.example.JanAwaaz.dto.OfficerPasswordUpdateRequestDto;
-import com.example.JanAwaaz.dto.OfficerPatchRequestDto;
+import com.example.JanAwaaz.dto.officer.OfficerCreateRequestDto;
+import com.example.JanAwaaz.dto.officer.OfficerCreateResponseDto;
+import com.example.JanAwaaz.dto.officer.OfficerPasswordUpdateRequestDto;
+import com.example.JanAwaaz.dto.officer.OfficerPatchRequestDto;
 import com.example.JanAwaaz.exception.ResourceNotFoundException;
 import com.example.JanAwaaz.model.Department;
 import com.example.JanAwaaz.model.Officer;
@@ -35,6 +35,9 @@ public class OfficerService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private DepartmentService departmentService;
+
     public OfficerCreateResponseDto createOfficer(OfficerCreateRequestDto request) {
         if (officerRepo.existsByEmail(request.email())) {
             throw new RuntimeException("Email already registered");
@@ -43,7 +46,7 @@ public class OfficerService {
             throw new RuntimeException("Phone number already registered");
         }
 
-        Department department = getDepartmentById(request.departmentId());
+        Department department = departmentService.getByDepartmentId(request.departmentId());
         String temporaryPassword = generateTemporaryPassword();
 
         Officer officer = new Officer();
@@ -114,7 +117,7 @@ public class OfficerService {
         }
 
         if (officer.departmentId() != null) {
-            Department department = getDepartmentById(officer.departmentId());
+            Department department = departmentService.getByDepartmentId(officer.departmentId());
             existingOfficer.setDepartment(department);
         }
 
@@ -160,11 +163,6 @@ public class OfficerService {
 
         existingOfficer.setActive(false);
         officerRepo.save(existingOfficer);
-    }
-
-    private Department getDepartmentById(Long departmentId) {
-        return departmentRepo.findById(departmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + departmentId));
     }
 
     private String generateTemporaryPassword() {

@@ -1,4 +1,4 @@
-package com.example.JanAwaaz.dto;
+package com.example.JanAwaaz.dto.officer;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

@@ -1,19 +1,35 @@
 package com.example.JanAwaaz.controller;
 
+import com.example.JanAwaaz.dto.citizen.CitizenProfileResponseDto;
+import com.example.JanAwaaz.dto.citizen.CitizenProfileUpdateRequestDto;
 import com.example.JanAwaaz.model.Citizen;
 import com.example.JanAwaaz.service.CitizenService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Controller
+@RestController
+@RequestMapping("/citizens")
 public class CitizenController {
     @Autowired
     private CitizenService citizenService;
+
+    @GetMapping("/me")
+    public ResponseEntity<CitizenProfileResponseDto> getMyProfile(Authentication authentication) {
+        return ResponseEntity.ok(citizenService.getCitizenProfileByEmail(authentication.getName()));
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<CitizenProfileResponseDto> patchMyProfile(
+            Authentication authentication,
+            @Valid @RequestBody CitizenProfileUpdateRequestDto request
+    ) {
+        return ResponseEntity.ok(citizenService.patchCitizenProfileByEmail(authentication.getName(), request));
+    }
 
     @GetMapping("/{citizenId}")
     public ResponseEntity<Citizen> getCitizenById(@PathVariable Long citizenId){
@@ -23,10 +39,7 @@ public class CitizenController {
     public ResponseEntity<List<Citizen>> getAllCitizens(){
         return ResponseEntity.ok(citizenService.getAllCitizens());
     }
-    @PatchMapping("/{citizenId}")
-    public ResponseEntity<Citizen> patchCitizen(@PathVariable Long citizenId, @RequestBody Citizen citizen){
-        return ResponseEntity.ok(citizenService.patchCitizen(citizenId, citizen));
-    }
+
     @DeleteMapping("/{citizenId}")
     public ResponseEntity<String> deleteCitizen(@PathVariable Long citizenId){
         citizenService.deleteCitizen(citizenId);

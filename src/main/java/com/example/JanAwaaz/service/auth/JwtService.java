@@ -49,10 +49,14 @@ public class JwtService {
     }
 
     private byte[] resolveKeyBytes(String secretKey) {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException("JWT secret is missing. Set app.jwt.secret or JWT_SECRET.");
+        }
+
         byte[] keyBytes;
         try {
-            keyBytes = Decoders.BASE64.decode(secretKey);
-        } catch (IllegalArgumentException ex) {
+            keyBytes = Decoders.BASE64.decode(secretKey.trim());
+        } catch (RuntimeException ex) {
             keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         }
 

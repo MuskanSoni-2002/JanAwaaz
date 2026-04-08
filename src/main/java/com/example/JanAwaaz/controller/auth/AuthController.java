@@ -1,7 +1,7 @@
 package com.example.JanAwaaz.controller.auth;
-import com.example.JanAwaaz.dto.LoginRequestDto;
-import com.example.JanAwaaz.dto.RegisterRequestDto;
-import com.example.JanAwaaz.dto.RegisterResponseDto;
+import com.example.JanAwaaz.dto.auth.LoginRequestDto;
+import com.example.JanAwaaz.dto.auth.RegisterRequestDto;
+import com.example.JanAwaaz.dto.auth.RegisterResponseDto;
 import com.example.JanAwaaz.service.auth.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

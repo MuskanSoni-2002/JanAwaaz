@@ -1,8 +1,8 @@
 package com.example.JanAwaaz.service.auth;
 
-import com.example.JanAwaaz.dto.LoginRequestDto;
-import com.example.JanAwaaz.dto.RegisterRequestDto;
-import com.example.JanAwaaz.dto.RegisterResponseDto;
+import com.example.JanAwaaz.dto.auth.LoginRequestDto;
+import com.example.JanAwaaz.dto.auth.RegisterRequestDto;
+import com.example.JanAwaaz.dto.auth.RegisterResponseDto;
 import com.example.JanAwaaz.model.Address;
 import com.example.JanAwaaz.model.Citizen;
 import com.example.JanAwaaz.model.enums.UserRole;

@@ -1,4 +1,4 @@
-package com.example.JanAwaaz.dto;
+package com.example.JanAwaaz.dto.officer;
 
 import com.example.JanAwaaz.model.enums.UserRole;
 

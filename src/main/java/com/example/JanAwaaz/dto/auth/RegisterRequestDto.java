@@ -1,6 +1,6 @@
-package com.example.JanAwaaz.dto;
+package com.example.JanAwaaz.dto.auth;
 
-import com.example.JanAwaaz.model.Address;
+import com.example.JanAwaaz.dto.citizen.AddressRequestDto;
 import com.example.JanAwaaz.model.enums.Gender;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
