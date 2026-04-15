@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Jwts;
+import com.example.JanAwaaz.model.enums.UserRole;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -33,6 +34,11 @@ public class JwtService {
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }
+
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
+    }
+
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(signInKey)
@@ -44,8 +50,17 @@ public class JwtService {
         final String username = extractUsername(token);
         return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
+
+    public boolean isTokenValidForSubject(String token, String expectedSubject) {
+        return expectedSubject.equals(extractUsername(token)) && !isTokenExpired(token);
+    }
+
     private boolean isTokenExpired(String token) {
         return extractAllClaims(token).getExpiration().before(new Date());
+    }
+
+    public String buildSubject(UserRole role, Long userId) {
+        return role.name() + ":" + userId;
     }
 
     private byte[] resolveKeyBytes(String secretKey) {

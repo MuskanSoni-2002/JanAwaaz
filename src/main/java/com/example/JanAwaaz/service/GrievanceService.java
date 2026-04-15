@@ -12,7 +12,11 @@ import com.example.JanAwaaz.repository.OfficerRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,9 +43,12 @@ public class GrievanceService {
     @Autowired
     private NotificationService notificationService;
 
-    public Grievance getGrievanceById(Long grievanceId){
-        return grievanceRepo.findById(grievanceId)
+    public Grievance getGrievanceById(Long grievanceId, Authentication authentication){
+        Grievance grievance = grievanceRepo.findById(grievanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grievance not found with id: "+ grievanceId));
+
+        authorizeGrievanceRead(grievance, authentication);
+        return grievance;
     }
 
     public List<Grievance> getAllGrievances(){
@@ -92,11 +99,12 @@ public class GrievanceService {
         return mapToResponse(savedGrievance);
     }
 
-    public Grievance patchGrievanceStatus(Long grievanceId, Status status) {
+    public Grievance patchGrievanceStatus(Long grievanceId, Status status, Authentication authentication) {
 
         Grievance grievance = grievanceRepo.findById(grievanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grievance not found"));
 
+        authorizeGrievanceStatusUpdate(grievance, authentication);
         grievance.setStatus(status);
 
         return grievanceRepo.save(grievance);
@@ -146,5 +154,54 @@ public class GrievanceService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    private void authorizeGrievanceRead(Grievance grievance, Authentication authentication) {
+        if (hasRole(authentication, "ROLE_ADMIN")) {
+            return;
+        }
+
+        if (hasRole(authentication, "ROLE_CITIZEN")) {
+            Citizen citizen = grievance.getCitizen();
+            if (citizen != null && authentication.getName().equalsIgnoreCase(citizen.getEmail())) {
+                return;
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot access this grievance");
+        }
+
+        if (hasRole(authentication, "ROLE_OFFICER")) {
+            Officer officer = grievance.getOfficer();
+            if (officer != null && authentication.getName().equalsIgnoreCase(officer.getEmail())) {
+                return;
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot access this grievance");
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unsupported role for grievance access");
+    }
+
+    private void authorizeGrievanceStatusUpdate(Grievance grievance, Authentication authentication) {
+        if (hasRole(authentication, "ROLE_ADMIN")) {
+            return;
+        }
+
+        if (hasRole(authentication, "ROLE_OFFICER")) {
+            Officer officer = grievance.getOfficer();
+            if (officer != null && authentication.getName().equalsIgnoreCase(officer.getEmail())) {
+                return;
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot access this grievance");
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unsupported role for grievance access");
+    }
+
+    private boolean hasRole(Authentication authentication, String role) {
+        for (GrantedAuthority authority : authentication.getAuthorities()) {
+            if (role.equals(authority.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

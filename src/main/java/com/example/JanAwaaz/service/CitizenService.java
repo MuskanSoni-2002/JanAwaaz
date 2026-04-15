@@ -4,16 +4,19 @@ import com.example.JanAwaaz.dto.citizen.CitizenAddressResponseDto;
 import com.example.JanAwaaz.dto.citizen.CitizenAddressUpdateRequestDto;
 import com.example.JanAwaaz.dto.citizen.CitizenProfileResponseDto;
 import com.example.JanAwaaz.dto.citizen.CitizenProfileUpdateRequestDto;
+import com.example.JanAwaaz.exception.DuplicateResourceException;
 import com.example.JanAwaaz.exception.ResourceNotFoundException;
 import com.example.JanAwaaz.model.Address;
 import com.example.JanAwaaz.model.Citizen;
-import com.example.JanAwaaz.model.Grievance;
 import com.example.JanAwaaz.repository.AddressRepository;
 import com.example.JanAwaaz.repository.CitizenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Service
 public class CitizenService {
@@ -34,10 +37,12 @@ public class CitizenService {
                 .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with email: " + email));
 
         if (request.firstName() != null) {
+            validateNonBlankField(request.firstName(), "First name");
             existingCitizen.setFirstName(request.firstName());
         }
 
         if (request.lastName() != null) {
+            validateNonBlankField(request.lastName(), "Last name");
             existingCitizen.setLastName(request.lastName());
         }
 
@@ -47,14 +52,14 @@ public class CitizenService {
 
         if (request.email() != null) {
             if (citizenRepo.existsByEmailAndCitizenIdNot(request.email(), existingCitizen.getCitizenId())) {
-                throw new RuntimeException("Email already registered");
+                throw new DuplicateResourceException("Email already registered");
             }
             existingCitizen.setEmail(request.email());
         }
 
         if (request.phoneNumber() != null) {
             if (citizenRepo.existsByPhoneNumberAndCitizenIdNot(request.phoneNumber(), existingCitizen.getCitizenId())) {
-                throw new RuntimeException("Phone number already registered");
+                throw new DuplicateResourceException("Phone number already registered");
             }
             existingCitizen.setPhoneNumber(request.phoneNumber());
         }
@@ -84,6 +89,7 @@ public class CitizenService {
     private Address applyAddressPatch(Address existingAddress, CitizenAddressUpdateRequestDto addressRequest) {
         Address addressToSave = existingAddress;
         if (addressToSave == null) {
+            validateRequiredAddressFields(addressRequest);
             addressToSave = new Address();
         }
 
@@ -104,6 +110,28 @@ public class CitizenService {
         }
 
         return addressRepo.save(addressToSave);
+    }
+
+    private void validateRequiredAddressFields(CitizenAddressUpdateRequestDto addressRequest) {
+        if (isBlank(addressRequest.addressLine1())
+                || isBlank(addressRequest.city())
+                || isBlank(addressRequest.state())
+                || isBlank(addressRequest.pincode())) {
+            throw new ResponseStatusException(
+                    BAD_REQUEST,
+                    "addressLine1, city, state, and pincode are required when adding an address"
+            );
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private void validateNonBlankField(String value, String fieldName) {
+        if (isBlank(value)) {
+            throw new ResponseStatusException(BAD_REQUEST, fieldName + " cannot be blank");
+        }
     }
 
     private CitizenProfileResponseDto mapToProfileResponse(Citizen citizen) {

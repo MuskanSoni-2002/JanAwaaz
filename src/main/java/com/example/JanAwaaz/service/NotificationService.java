@@ -13,9 +13,11 @@ import com.example.JanAwaaz.repository.CitizenRepository;
 import com.example.JanAwaaz.repository.NotificationRepository;
 import com.example.JanAwaaz.repository.OfficerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -67,19 +69,15 @@ public class NotificationService {
 
         return NotificationRepo.save(notification);
     }
-    public Notification getNotificationById(Long id) {
-
-        return NotificationRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
+    public Notification getNotificationById(Long id, Authentication authentication) {
+        return getAuthorizedNotification(id, authentication);
     }
     public List<Notification> getAllNotifications() {
 
         return NotificationRepo.findAll();
     }
-    public Notification markAsRead(Long id) {
-
-        Notification notification = NotificationRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
+    public Notification markAsRead(Long id, Authentication authentication) {
+        Notification notification = getAuthorizedNotification(id, authentication);
 
         notification.setIsRead(true);
 
@@ -126,5 +124,46 @@ public class NotificationService {
             }
         }
         return false;
+    }
+
+    private Notification getAuthorizedNotification(Long id, Authentication authentication) {
+        Notification notification = NotificationRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
+
+        if (hasRole(authentication, "ROLE_ADMIN")) {
+            adminRepo.findByEmail(authentication.getName())
+                    .orElseThrow(() -> new ResourceNotFoundException("Admin not found with email: " + authentication.getName()));
+            return notification;
+        }
+
+        NotificationRecipient recipient = resolveRecipient(authentication);
+        if (notification.getRecipientRole() == recipient.role()
+                && notification.getRecipientId() != null
+                && notification.getRecipientId().equals(recipient.recipientId())) {
+            return notification;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot access this notification");
+    }
+
+    private NotificationRecipient resolveRecipient(Authentication authentication) {
+        String email = authentication.getName();
+
+        if (hasRole(authentication, "ROLE_CITIZEN")) {
+            Citizen citizen = citizenRepo.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with email: " + email));
+            return new NotificationRecipient(UserRole.CITIZEN, citizen.getCitizenId());
+        }
+
+        if (hasRole(authentication, "ROLE_OFFICER")) {
+            Officer officer = officerRepo.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("Officer not found with email: " + email));
+            return new NotificationRecipient(UserRole.OFFICER, officer.getOfficerId());
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unsupported role for notification access");
+    }
+
+    private record NotificationRecipient(UserRole role, Long recipientId) {
     }
 }

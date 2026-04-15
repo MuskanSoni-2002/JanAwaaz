@@ -41,10 +41,13 @@ public class GrievanceController {
         return ResponseEntity.ok(grievanceService.getGrievancesByCitizenEmail(authentication.getName()));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'OFFICER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CITIZEN', 'OFFICER')")
     @GetMapping("/{grievanceId}")
-    public ResponseEntity<Grievance> getGrievanceById(@PathVariable Long grievanceId){
-        return ResponseEntity.ok(grievanceService.getGrievanceById(grievanceId));
+    public ResponseEntity<Grievance> getGrievanceById(
+            @PathVariable Long grievanceId,
+            Authentication authentication
+    ){
+        return ResponseEntity.ok(grievanceService.getGrievanceById(grievanceId, authentication));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -55,8 +58,12 @@ public class GrievanceController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'OFFICER')")
     @PatchMapping("/{grievanceId}/status")
-    public ResponseEntity<Grievance> updateStatus(@PathVariable Long grievanceId, @RequestParam Status status){
-        return ResponseEntity.ok(grievanceService.patchGrievanceStatus(grievanceId, status));
+    public ResponseEntity<Grievance> updateStatus(
+            Authentication authentication,
+            @PathVariable Long grievanceId,
+            @RequestParam Status status
+    ){
+        return ResponseEntity.ok(grievanceService.patchGrievanceStatus(grievanceId, status, authentication));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

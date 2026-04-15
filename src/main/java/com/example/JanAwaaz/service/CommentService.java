@@ -101,6 +101,10 @@ public class CommentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot access comments for this grievance");
         }
 
+        if (hasRole(authentication, "ROLE_ADMIN")) {
+            return grievance;
+        }
+
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unsupported role for comment access");
     }
 

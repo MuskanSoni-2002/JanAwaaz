@@ -187,6 +187,34 @@ class CommentServiceTest {
         verify(notificationService, never()).createCommentNotification(any(Comment.class), any(String.class));
     }
 
+    @Test
+    void adminCanReadCommentsForAnyGrievance() {
+        Citizen citizen = buildCitizen(7L, "asha@example.com", "Asha", "Kumar");
+        Officer officer = buildOfficer(11L, "officer@example.com", "Inspector Rao");
+        Grievance grievance = buildGrievance(42L, citizen, officer);
+        Authentication authentication = authentication("admin@example.com", "ROLE_ADMIN");
+
+        Comment citizenComment = Comment.builder()
+                .commentId(1L)
+                .content("Citizen reply")
+                .senderId(7L)
+                .senderRole(UserRole.CITIZEN)
+                .receiverId(11L)
+                .receiverRole(UserRole.OFFICER)
+                .grievance(grievance)
+                .build();
+
+        when(grievanceRepo.findById(42L)).thenReturn(Optional.of(grievance));
+        when(commentRepo.findByGrievance_GrievanceIdOrderByCreatedAtAsc(42L))
+                .thenReturn(List.of(citizenComment));
+        when(citizenRepo.findById(7L)).thenReturn(Optional.of(citizen));
+
+        List<CommentResponseDto> response = commentService.getCommentsByGrievance(42L, authentication);
+
+        assertEquals(1, response.size());
+        assertEquals("Asha Kumar", response.get(0).senderName());
+    }
+
     private Authentication authentication(String email, String role) {
         return new UsernamePasswordAuthenticationToken(
                 email,

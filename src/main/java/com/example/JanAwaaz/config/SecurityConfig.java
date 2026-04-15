@@ -27,6 +27,13 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/register",
+            "/login/citizen",
+            "/login/officer",
+            "/login/admin",
+            "/error"
+    };
 
     @Autowired
     private JwtFilter jwtFilter;
@@ -41,12 +48,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/register", "/login/**", "/error").permitAll()
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/citizens/me").hasRole("CITIZEN")
                         .requestMatchers(HttpMethod.PATCH, "/citizens/me").hasRole("CITIZEN")
                         .requestMatchers(HttpMethod.POST, "/grievances/file").hasRole("CITIZEN")
                         .requestMatchers(HttpMethod.GET, "/grievances/me").hasRole("CITIZEN")
+                        .requestMatchers(HttpMethod.POST, "/notifications").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/notifications").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/notifications/*").hasAnyRole("ADMIN", "OFFICER", "CITIZEN")
+                        .requestMatchers(HttpMethod.PATCH, "/notifications/*").hasAnyRole("ADMIN", "OFFICER", "CITIZEN")
                         .requestMatchers("/citizens/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
