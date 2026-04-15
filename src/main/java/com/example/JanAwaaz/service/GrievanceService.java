@@ -25,7 +25,7 @@ public class GrievanceService {
     );
 
     @Autowired
-    private GrievanceRepository GrievanceRepo;
+    private GrievanceRepository grievanceRepo;
 
     @Autowired
     private CitizenRepository citizenRepo;
@@ -40,19 +40,19 @@ public class GrievanceService {
     private NotificationService notificationService;
 
     public Grievance getGrievanceById(Long grievanceId){
-        return GrievanceRepo.findById(grievanceId)
+        return grievanceRepo.findById(grievanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grievance not found with id: "+ grievanceId));
     }
 
     public List<Grievance> getAllGrievances(){
-        return GrievanceRepo.findAll();
+        return grievanceRepo.findAll();
     }
 
     public void deleteGrievance(Long id) {
-        Grievance grievance = GrievanceRepo.findById(id)
+        Grievance grievance = grievanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Grievance not found"));
 
-        GrievanceRepo.delete(grievance);
+        grievanceRepo.delete(grievance);
     }
     @Transactional
     public GrievanceResponseDto createGrievance(String citizenEmail, GrievanceRequestDto request) {
@@ -83,7 +83,7 @@ public class GrievanceService {
         else {
             grievance.setStatus(Status.SUBMITTED);
         }
-        Grievance savedGrievance = GrievanceRepo.save(grievance);
+        Grievance savedGrievance = grievanceRepo.save(grievance);
 
         if(assignedOfficer != null){
             notificationService.createOfficerAssignmentNotification(assignedOfficer, savedGrievance);
@@ -94,12 +94,12 @@ public class GrievanceService {
 
     public Grievance patchGrievanceStatus(Long grievanceId, Status status) {
 
-        Grievance grievance = GrievanceRepo.findById(grievanceId)
+        Grievance grievance = grievanceRepo.findById(grievanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grievance not found"));
 
         grievance.setStatus(status);
 
-        return GrievanceRepo.save(grievance);
+        return grievanceRepo.save(grievance);
     }
 
     private GrievanceResponseDto mapToResponse(Grievance grievance) {
@@ -136,5 +136,15 @@ public class GrievanceService {
                 .stream()
                 .findFirst()
                 .orElse(null);
+    }
+
+    public List<GrievanceResponseDto> getGrievancesByCitizenEmail(String citizenEmail) {
+        citizenRepo.findByEmail(citizenEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with email: " + citizenEmail));
+
+        return grievanceRepo.findByCitizenEmailOrderByCreatedAtDesc(citizenEmail)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 }

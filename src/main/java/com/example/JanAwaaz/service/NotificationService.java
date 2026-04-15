@@ -3,6 +3,7 @@ package com.example.JanAwaaz.service;
 import com.example.JanAwaaz.exception.ResourceNotFoundException;
 import com.example.JanAwaaz.model.Admin;
 import com.example.JanAwaaz.model.Citizen;
+import com.example.JanAwaaz.model.Comment;
 import com.example.JanAwaaz.model.Grievance;
 import com.example.JanAwaaz.model.Notification;
 import com.example.JanAwaaz.model.Officer;
@@ -49,6 +50,16 @@ public class NotificationService {
         notification.setGrievance(grievance);
         return createNotification(notification);
     }
+
+    public Notification createCommentNotification(Comment comment, String senderName) {
+        Notification notification = new Notification();
+        notification.setMessage("New message on grievance #" + comment.getGrievance().getGrievanceId() + " from " + senderName + ".");
+        notification.setRecipientId(comment.getReceiverId());
+        notification.setRecipientRole(comment.getReceiverRole());
+        notification.setGrievance(comment.getGrievance());
+        return createNotification(notification);
+    }
+
     public Notification createNotification(Notification notification) {
 
         notification.setCreatedAt(LocalDateTime.now());

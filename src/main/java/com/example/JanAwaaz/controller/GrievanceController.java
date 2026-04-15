@@ -35,21 +35,31 @@ public class GrievanceController {
         );
     }
 
+    @PreAuthorize("hasRole('CITIZEN')")
+    @GetMapping("/me")
+    public ResponseEntity<List<GrievanceResponseDto>> getMyGrievances(Authentication authentication) {
+        return ResponseEntity.ok(grievanceService.getGrievancesByCitizenEmail(authentication.getName()));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'OFFICER')")
     @GetMapping("/{grievanceId}")
     public ResponseEntity<Grievance> getGrievanceById(@PathVariable Long grievanceId){
         return ResponseEntity.ok(grievanceService.getGrievanceById(grievanceId));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<Grievance>> getAllGrievances(){
         return ResponseEntity.ok(grievanceService.getAllGrievances());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'OFFICER')")
     @PatchMapping("/{grievanceId}/status")
     public ResponseEntity<Grievance> updateStatus(@PathVariable Long grievanceId, @RequestParam Status status){
         return ResponseEntity.ok(grievanceService.patchGrievanceStatus(grievanceId, status));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{grievanceId}")
     public ResponseEntity<String> deleteGrievance(@PathVariable Long grievanceId){
         grievanceService.deleteGrievance(grievanceId);

@@ -7,6 +7,7 @@ import com.example.JanAwaaz.dto.citizen.CitizenProfileUpdateRequestDto;
 import com.example.JanAwaaz.exception.ResourceNotFoundException;
 import com.example.JanAwaaz.model.Address;
 import com.example.JanAwaaz.model.Citizen;
+import com.example.JanAwaaz.model.Grievance;
 import com.example.JanAwaaz.repository.AddressRepository;
 import com.example.JanAwaaz.repository.CitizenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
