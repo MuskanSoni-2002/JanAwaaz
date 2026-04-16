@@ -8,7 +8,6 @@ import com.example.JanAwaaz.exception.DuplicateResourceException;
 import com.example.JanAwaaz.exception.ResourceNotFoundException;
 import com.example.JanAwaaz.model.Address;
 import com.example.JanAwaaz.model.Citizen;
-import com.example.JanAwaaz.repository.AddressRepository;
 import com.example.JanAwaaz.repository.CitizenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -77,12 +76,13 @@ public class CitizenService {
         return citizenRepo.findAll();
     }
 
+    public void deleteCitizen(String email) {
+        Citizen existingCitizen = citizenRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with email: " + email));
 
-    public void deleteCitizen(Long citizenId) {
-        Citizen existingCitizen = citizenRepo.findById(citizenId)
-                .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with id: " + citizenId));
-
-        existingCitizen.setActive(false);
+        if (existingCitizen.getActive()) {
+            existingCitizen.setActive(false);
+        }
         citizenRepo.save(existingCitizen);
     }
 
@@ -109,7 +109,7 @@ public class CitizenService {
             addressToSave.setPincode(addressRequest.pincode());
         }
 
-        return addressRepo.save(addressToSave);
+        return addressToSave;
     }
 
     private void validateRequiredAddressFields(CitizenAddressUpdateRequestDto addressRequest) {
@@ -119,8 +119,7 @@ public class CitizenService {
                 || isBlank(addressRequest.pincode())) {
             throw new ResponseStatusException(
                     BAD_REQUEST,
-                    "addressLine1, city, state, and pincode are required when adding an address"
-            );
+                    "addressLine1, city, state, and pincode are required when adding an address");
         }
     }
 
@@ -142,8 +141,7 @@ public class CitizenService {
                     citizen.getAddress().getAddressLine2(),
                     citizen.getAddress().getCity(),
                     citizen.getAddress().getState(),
-                    citizen.getAddress().getPincode()
-            );
+                    citizen.getAddress().getPincode());
         }
 
         return new CitizenProfileResponseDto(
@@ -155,8 +153,7 @@ public class CitizenService {
                 citizen.getPhoneNumber(),
                 addressResponse,
                 citizen.getRole(),
-                citizen.getActive()
-        );
+                citizen.getActive());
     }
 
     public Citizen getCitizenById(Long citizenId) {

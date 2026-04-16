@@ -3,6 +3,7 @@ package com.example.JanAwaaz.model;
 import com.example.JanAwaaz.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -33,6 +34,7 @@ public class Notification {
     private Boolean isRead;
 
     @Column(nullable = false)
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     @ManyToOne

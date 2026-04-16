@@ -23,6 +23,4 @@ public class Department {
 
     private String description;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

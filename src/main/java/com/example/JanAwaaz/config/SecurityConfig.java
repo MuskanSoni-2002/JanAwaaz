@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/citizens/me").hasRole("CITIZEN")
                         .requestMatchers(HttpMethod.PATCH, "/citizens/me").hasRole("CITIZEN")
+                        .requestMatchers(HttpMethod.DELETE, "/citizens/me").hasRole("CITIZEN")
                         .requestMatchers(HttpMethod.POST, "/grievances/file").hasRole("CITIZEN")
                         .requestMatchers(HttpMethod.GET, "/grievances/me").hasRole("CITIZEN")
                         .requestMatchers(HttpMethod.POST, "/notifications").hasRole("ADMIN")

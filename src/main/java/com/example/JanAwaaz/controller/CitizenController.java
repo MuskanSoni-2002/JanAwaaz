@@ -2,7 +2,6 @@ package com.example.JanAwaaz.controller;
 
 import com.example.JanAwaaz.dto.citizen.CitizenProfileResponseDto;
 import com.example.JanAwaaz.dto.citizen.CitizenProfileUpdateRequestDto;
-import com.example.JanAwaaz.model.Citizen;
 import com.example.JanAwaaz.service.CitizenService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,23 +25,23 @@ public class CitizenController {
     @PatchMapping("/me")
     public ResponseEntity<CitizenProfileResponseDto> patchMyProfile(
             Authentication authentication,
-            @Valid @RequestBody CitizenProfileUpdateRequestDto request
-    ) {
+            @Valid @RequestBody CitizenProfileUpdateRequestDto request) {
         return ResponseEntity.ok(citizenService.patchCitizenProfileByEmail(authentication.getName(), request));
     }
 
     @GetMapping("/{citizenId}")
-    public ResponseEntity<Citizen> getCitizenById(@PathVariable Long citizenId){
+    public ResponseEntity<CitizenProfileResponseDto> getCitizenById(@PathVariable Long citizenId) {
         return ResponseEntity.ok(citizenService.getCitizenById(citizenId));
     }
+
     @GetMapping()
-    public ResponseEntity<List<Citizen>> getAllCitizens(){
+    public ResponseEntity<List<CitizenProfileResponseDto>> getAllCitizens() {
         return ResponseEntity.ok(citizenService.getAllCitizens());
     }
 
-    @DeleteMapping("/{citizenId}")
-    public ResponseEntity<String> deleteCitizen(@PathVariable Long citizenId){
-        citizenService.deleteCitizen(citizenId);
-        return ResponseEntity.ok("Citizen Deleted successfully");
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteCitizen(Authentication authentication) {
+        citizenService.deleteCitizen(authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 }
