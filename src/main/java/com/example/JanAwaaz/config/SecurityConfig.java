@@ -32,6 +32,8 @@ public class SecurityConfig {
             "/login/citizen",
             "/login/officer",
             "/login/admin",
+            "/forgot-password",
+            "/reset-password",
             "/error"
     };
 

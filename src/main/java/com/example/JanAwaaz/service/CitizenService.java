@@ -22,9 +22,6 @@ public class CitizenService {
     @Autowired
     private CitizenRepository citizenRepo;
 
-    @Autowired
-    private AddressRepository addressRepo;
-
     public CitizenProfileResponseDto getCitizenProfileByEmail(String email) {
         Citizen citizen = citizenRepo.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with email: " + email));
@@ -72,8 +69,10 @@ public class CitizenService {
         return mapToProfileResponse(savedCitizen);
     }
 
-    public List<Citizen> getAllCitizens() {
-        return citizenRepo.findAll();
+    public List<CitizenProfileResponseDto> getAllCitizens() {
+        return citizenRepo.findAll().stream()
+                .map(this::mapToProfileResponse)
+                .toList();
     }
 
     public void deleteCitizen(String email) {
@@ -156,8 +155,9 @@ public class CitizenService {
                 citizen.getActive());
     }
 
-    public Citizen getCitizenById(Long citizenId) {
-        return citizenRepo.findById(citizenId)
+    public CitizenProfileResponseDto getCitizenById(Long citizenId) {
+        Citizen citizen = citizenRepo.findById(citizenId)
                 .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with id: " + citizenId));
+        return mapToProfileResponse(citizen);
     }
 }
