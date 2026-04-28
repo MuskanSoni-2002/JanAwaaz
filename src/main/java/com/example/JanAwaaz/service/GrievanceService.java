@@ -155,6 +155,15 @@ public class GrievanceService {
                 .map(this::mapToResponse)
                 .toList();
     }
+    public List<GrievanceResponseDto> getGrievancesByOfficerEmail(String officerEmail) {
+        citizenRepo.findByEmail(officerEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with email: " + officerEmail));
+
+        return grievanceRepo.findByOfficerEmailOrderByCreatedAtDesc(officerEmail)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
 
     private void authorizeGrievanceRead(Grievance grievance, Authentication authentication) {
         if (hasRole(authentication, "ROLE_ADMIN")) {

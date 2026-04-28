@@ -40,6 +40,11 @@ public class GrievanceController {
     public ResponseEntity<List<GrievanceResponseDto>> getMyGrievances(Authentication authentication) {
         return ResponseEntity.ok(grievanceService.getGrievancesByCitizenEmail(authentication.getName()));
     }
+    @PreAuthorize("hasRole('OFFICER')")
+    @GetMapping("/assigned")
+    public ResponseEntity<List<GrievanceResponseDto>> getAssignedGrievances(Authentication authentication) {
+        return ResponseEntity.ok(grievanceService.getGrievancesByOfficerEmail(authentication.getName()));
+    }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'CITIZEN', 'OFFICER')")
     @GetMapping("/{grievanceId}")
