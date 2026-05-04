@@ -12,4 +12,8 @@ public interface GrievanceRepository extends JpaRepository<Grievance, Long> {
     List<Grievance> findByCitizenEmailOrderByCreatedAtDesc(String citizenEmail);
 
     List<Grievance> findByOfficerEmailOrderByCreatedAtDesc(String officerEmail);
+
+    List<Grievance> findAllByOrderByCreatedAtDesc();
+
+    List<Grievance> findByAddressTextContainingIgnoreCaseOrderByCreatedAtDesc(String addressText);
 }

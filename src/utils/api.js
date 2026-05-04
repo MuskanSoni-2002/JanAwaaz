@@ -29,3 +29,16 @@ export function getApiErrorMessage(error, fallbackMessage = 'Something went wron
 
   return fallbackMessage;
 }
+
+export function getApiAssetUrl(assetUrl) {
+  if (!assetUrl) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(assetUrl)) {
+    return assetUrl;
+  }
+
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082';
+  return `${apiBaseUrl}${assetUrl.startsWith('/') ? '' : '/'}${assetUrl}`;
+}

@@ -23,6 +23,14 @@ import OfficerComplaints from './officer/pages/OfficerComplaints';
 import OfficerComplaintDetails from './officer/pages/OfficerComplaintDetails';
 import OfficerProfile from './officer/pages/OfficerProfile';
 
+// Admin portal
+import { AdminAuthProvider } from './admin/context/AdminAuthContext';
+import AdminGuard from './admin/components/AdminGuard';
+import AdminLayout from './admin/layouts/AdminLayout';
+import AdminLogin from './admin/pages/AdminLogin';
+import AdminOfficerManagement from './admin/pages/AdminOfficerManagement';
+import AdminGrievanceManagement from './admin/pages/AdminGrievanceManagement';
+
 function App() {
   return (
     <BrowserRouter>
@@ -63,6 +71,25 @@ function App() {
                 <Route path="*" element={<Navigate to="login" replace />} />
               </Routes>
             </OfficerAuthProvider>
+          }
+        />
+
+        <Route
+          path="/admin/*"
+          element={
+            <AdminAuthProvider>
+              <Routes>
+                <Route path="login" element={<AdminLogin />} />
+                <Route element={<AdminGuard />}>
+                  <Route element={<AdminLayout />}>
+                    <Route path="officers" element={<AdminOfficerManagement />} />
+                    <Route path="grievances" element={<AdminGrievanceManagement />} />
+                    <Route index element={<Navigate to="officers" replace />} />
+                  </Route>
+                </Route>
+                <Route path="*" element={<Navigate to="login" replace />} />
+              </Routes>
+            </AdminAuthProvider>
           }
         />
 

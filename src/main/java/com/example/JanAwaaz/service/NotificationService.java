@@ -7,6 +7,7 @@ import com.example.JanAwaaz.model.Comment;
 import com.example.JanAwaaz.model.Grievance;
 import com.example.JanAwaaz.model.Notification;
 import com.example.JanAwaaz.model.Officer;
+import com.example.JanAwaaz.model.enums.Status;
 import com.example.JanAwaaz.model.enums.UserRole;
 import com.example.JanAwaaz.repository.AdminRepository;
 import com.example.JanAwaaz.repository.CitizenRepository;
@@ -21,6 +22,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class NotificationService {
@@ -47,6 +51,43 @@ public class NotificationService {
     public Notification createCitizenSubmissionNotification(Citizen citizen, Officer officer, Grievance grievance){
         Notification notification = new Notification();
         notification.setMessage("Your grievance #" + grievance.getGrievanceId() + " has been submitted and assigned to " + officer.getName());
+        notification.setRecipientId(citizen.getCitizenId());
+        notification.setRecipientRole(UserRole.CITIZEN);
+        notification.setGrievance(grievance);
+        return createNotification(notification);
+    }
+
+    public Notification createCitizenSubmissionPendingNotification(Citizen citizen, Grievance grievance) {
+        Notification notification = new Notification();
+        notification.setMessage("Your grievance #" + grievance.getGrievanceId() + " has been submitted and is awaiting officer assignment.");
+        notification.setRecipientId(citizen.getCitizenId());
+        notification.setRecipientRole(UserRole.CITIZEN);
+        notification.setGrievance(grievance);
+        return createNotification(notification);
+    }
+
+    public Notification createCitizenAssignmentNotification(Citizen citizen, Officer officer, Grievance grievance) {
+        Notification notification = new Notification();
+        notification.setMessage("Your grievance #" + grievance.getGrievanceId() + " is now assigned to " + officer.getName() + ".");
+        notification.setRecipientId(citizen.getCitizenId());
+        notification.setRecipientRole(UserRole.CITIZEN);
+        notification.setGrievance(grievance);
+        return createNotification(notification);
+    }
+
+    public Notification createCitizenStatusUpdateNotification(Grievance grievance, Status previousStatus) {
+        Citizen citizen = grievance.getCitizen();
+        if (citizen == null || grievance.getStatus() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot create a status notification without grievance owner and status");
+        }
+
+        Notification notification = new Notification();
+        String currentStatus = formatStatus(grievance.getStatus());
+        String message = previousStatus == null
+                ? "Your grievance #" + grievance.getGrievanceId() + " status is now " + currentStatus + "."
+                : "Your grievance #" + grievance.getGrievanceId() + " status changed from " + formatStatus(previousStatus) + " to " + currentStatus + ".";
+
+        notification.setMessage(message);
         notification.setRecipientId(citizen.getCitizenId());
         notification.setRecipientRole(UserRole.CITIZEN);
         notification.setGrievance(grievance);
@@ -162,6 +203,12 @@ public class NotificationService {
         }
 
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unsupported role for notification access");
+    }
+
+    private String formatStatus(Status status) {
+        return Stream.of(String.valueOf(status).split("_"))
+                .map(segment -> segment.substring(0, 1).toUpperCase(Locale.ROOT) + segment.substring(1).toLowerCase(Locale.ROOT))
+                .collect(Collectors.joining(" "));
     }
 
     private record NotificationRecipient(UserRole role, Long recipientId) {

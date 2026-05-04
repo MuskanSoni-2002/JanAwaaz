@@ -52,6 +52,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/citizens/me").hasRole("CITIZEN")
                         .requestMatchers(HttpMethod.PATCH, "/citizens/me").hasRole("CITIZEN")
                         .requestMatchers(HttpMethod.DELETE, "/citizens/me").hasRole("CITIZEN")

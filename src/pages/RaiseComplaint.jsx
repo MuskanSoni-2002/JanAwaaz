@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -11,22 +11,39 @@ import {
   Navigation,
   Sparkles,
 } from 'lucide-react';
+import LocationPickerMap from '../components/maps/LocationPickerMap';
 import api from '../services/api';
 import { getApiErrorMessage } from '../utils/api';
 
 const RaiseComplaint = () => {
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm();
   const [isLoading, setIsLoading] = useState(false);
-  const previewUrl = watch('imageUrl');
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const selectedImageFiles = useWatch({ control, name: 'imageFile' });
+  const selectedLatitude = useWatch({ control, name: 'latitude' });
+  const selectedLongitude = useWatch({ control, name: 'longitude' });
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const selectedFile = selectedImageFiles?.[0];
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return undefined;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(selectedFile);
+    setPreviewUrl(nextPreviewUrl);
+
+    return () => URL.revokeObjectURL(nextPreviewUrl);
+  }, [selectedImageFiles]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -47,16 +64,25 @@ const RaiseComplaint = () => {
     setIsLoading(true);
 
     try {
-      const payload = {
-        description: data.description,
-        categoryId: data.categoryId,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        addressText: data.addressText?.trim() || null,
-        imageUrl: data.imageUrl?.trim() || null,
-      };
+      const payload = new FormData();
+      payload.append('description', data.description.trim());
+      payload.append('categoryId', String(data.categoryId));
+      payload.append('latitude', String(data.latitude));
+      payload.append('longitude', String(data.longitude));
 
-      await api.post('/grievances/file', payload);
+      if (data.addressText?.trim()) {
+        payload.append('addressText', data.addressText.trim());
+      }
+
+      if (data.imageFile?.[0]) {
+        payload.append('imageFile', data.imageFile[0]);
+      }
+
+      await api.post('/grievances/file', payload, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       toast.success('Complaint raised successfully!');
       navigate('/complaints');
     } catch (error) {
@@ -75,12 +101,17 @@ const RaiseComplaint = () => {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setValue('latitude', Number(position.coords.latitude.toFixed(6)));
-        setValue('longitude', Number(position.coords.longitude.toFixed(6)));
+        setValue('latitude', Number(position.coords.latitude.toFixed(6)), { shouldDirty: true, shouldValidate: true });
+        setValue('longitude', Number(position.coords.longitude.toFixed(6)), { shouldDirty: true, shouldValidate: true });
         toast.success(`Location identified: ${position.coords.latitude}, ${position.coords.longitude}`);
       },
       () => toast.error('Location disabled or unavailable'),
     );
+  };
+
+  const handleLocationSelect = (latitude, longitude) => {
+    setValue('latitude', Number(latitude.toFixed(6)), { shouldDirty: true, shouldValidate: true });
+    setValue('longitude', Number(longitude.toFixed(6)), { shouldDirty: true, shouldValidate: true });
   };
 
   return (
@@ -160,34 +191,45 @@ const RaiseComplaint = () => {
                   <span className="field-label">
                     <span className="inline-flex items-center gap-1.5">
                       <ImageIcon className="h-3.5 w-3.5" />
-                      Image URL
+                      Image Attachment
                       <span className="text-slate-400 font-normal">(optional)</span>
                     </span>
                   </span>
                   <input
-                    type="url"
-                    {...register('imageUrl', {
-                      maxLength: {
-                        value: 2048,
-                        message: 'Image URL must be at most 2048 characters',
-                      },
-                      pattern: {
-                        value: /^https?:\/\/.+/i,
-                        message: 'Please enter a valid URL starting with http:// or https://',
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    {...register('imageFile', {
+                      validate: {
+                        validFileType: (fileList) => {
+                          const file = fileList?.[0];
+                          if (!file) {
+                            return true;
+                          }
+
+                          return file.type.startsWith('image/') || 'Please upload a valid image file';
+                        },
+                        validFileSize: (fileList) => {
+                          const file = fileList?.[0];
+                          if (!file) {
+                            return true;
+                          }
+
+                          return file.size <= 10 * 1024 * 1024 || 'Image file size must be 10 MB or less';
+                        },
                       },
                     })}
-                    placeholder="https://example.com/photo-of-issue.jpg"
                     className="field-input"
                   />
-                  {errors.imageUrl && <span className="mt-2 block text-xs text-rose-500">{errors.imageUrl.message}</span>}
-                  {previewUrl && !errors.imageUrl && (
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Upload a clear issue photo to help the assigned officer verify the situation faster.
+                  </p>
+                  {errors.imageFile && <span className="mt-2 block text-xs text-rose-500">{errors.imageFile.message}</span>}
+                  {previewUrl && !errors.imageFile && (
                     <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
                       <img
                         src={previewUrl}
                         alt="Issue preview"
                         className="h-48 w-full object-cover"
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                        onLoad={(e) => { e.currentTarget.style.display = 'block'; }}
                       />
                     </div>
                   )}
@@ -213,41 +255,51 @@ const RaiseComplaint = () => {
                 </button>
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-2">
-                <label className="block">
-                  <span className="field-label">Latitude</span>
-                  <input
-                    type="number"
-                    step="any"
-                    {...register('latitude', {
-                      required: 'Latitude is required',
-                      valueAsNumber: true,
-                      min: { value: -90, message: 'Latitude must be at least -90' },
-                      max: { value: 90, message: 'Latitude must be at most 90' },
-                    })}
-                    className="field-input"
-                    placeholder="28.7041"
-                  />
-                  {errors.latitude && <span className="mt-2 block text-xs text-rose-500">{errors.latitude.message}</span>}
-                </label>
+              <input
+                type="hidden"
+                {...register('latitude', {
+                  required: 'Location is required',
+                  valueAsNumber: true,
+                  min: { value: -90, message: 'Latitude must be at least -90' },
+                  max: { value: 90, message: 'Latitude must be at most 90' },
+                })}
+              />
+              <input
+                type="hidden"
+                {...register('longitude', {
+                  required: 'Location is required',
+                  valueAsNumber: true,
+                  min: { value: -180, message: 'Longitude must be at least -180' },
+                  max: { value: 180, message: 'Longitude must be at most 180' },
+                })}
+              />
 
-                <label className="block">
-                  <span className="field-label">Longitude</span>
-                  <input
-                    type="number"
-                    step="any"
-                    {...register('longitude', {
-                      required: 'Longitude is required',
-                      valueAsNumber: true,
-                      min: { value: -180, message: 'Longitude must be at least -180' },
-                      max: { value: 180, message: 'Longitude must be at most 180' },
-                    })}
-                    className="field-input"
-                    placeholder="77.1025"
-                  />
-                  {errors.longitude && <span className="mt-2 block text-xs text-rose-500">{errors.longitude.message}</span>}
-                </label>
+              <LocationPickerMap
+                latitude={selectedLatitude}
+                longitude={selectedLongitude}
+                onLocationSelect={handleLocationSelect}
+              />
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="surface-card-muted p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Latitude</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                    {Number.isFinite(selectedLatitude) ? selectedLatitude.toFixed(6) : 'Select on map'}
+                  </p>
+                </div>
+                <div className="surface-card-muted p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Longitude</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                    {Number.isFinite(selectedLongitude) ? selectedLongitude.toFixed(6) : 'Select on map'}
+                  </p>
+                </div>
               </div>
+
+              {(errors.latitude || errors.longitude) && (
+                <span className="block text-xs text-rose-500">
+                  {errors.latitude?.message || errors.longitude?.message}
+                </span>
+              )}
 
               <label className="block">
                 <span className="field-label">Street address or landmark</span>

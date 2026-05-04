@@ -5,15 +5,15 @@ import {
   Clock3,
   ImageIcon,
   Loader2,
-  MapPinned,
   MessageSquareText,
   SendHorizontal,
   ShieldCheck,
   UserRoundCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import LocationMap from '../components/maps/LocationMap';
 import api from '../services/api';
-import { getApiErrorMessage } from '../utils/api';
+import { getApiAssetUrl, getApiErrorMessage } from '../utils/api';
 import {
   formatGrievanceStatus,
   getGrievanceStatusClasses,
@@ -121,7 +121,7 @@ const ComplaintDetails = () => {
               </p>
               <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
                 <img
-                  src={complaint.imageUrl}
+                  src={getApiAssetUrl(complaint.imageUrl)}
                   alt="Complaint attachment"
                   className="max-h-80 w-full object-cover"
                   onError={(e) => {
@@ -133,7 +133,7 @@ const ComplaintDetails = () => {
             </div>
           )}
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <div className="surface-card-muted p-4">
               <div className="icon-badge h-10 w-10 rounded-2xl">
                 <Clock3 className="h-4.5 w-4.5" />
@@ -141,16 +141,6 @@ const ComplaintDetails = () => {
               <p className="mt-4 text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Submitted</p>
               <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
                 {complaint.createdAt ? new Date(complaint.createdAt).toLocaleString() : 'N/A'}
-              </p>
-            </div>
-
-            <div className="surface-card-muted p-4">
-              <div className="icon-badge h-10 w-10 rounded-2xl">
-                <MapPinned className="h-4.5 w-4.5" />
-              </div>
-              <p className="mt-4 text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Coordinates</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
-                {complaint.latitude}, {complaint.longitude}
               </p>
             </div>
 
@@ -169,9 +159,23 @@ const ComplaintDetails = () => {
         <div className="space-y-6">
           <div className="surface-card animate-fade-rise animate-fade-rise-delay-1 p-6">
             <p className="page-kicker">Location</p>
-            <h3 className="section-title mt-2">Reference details</h3>
+            <h3 className="section-title mt-2">Mapped grievance spot</h3>
+            <div className="mt-4">
+              <LocationMap
+                latitude={complaint.latitude}
+                longitude={complaint.longitude}
+                title={`Grievance #${complaint.grievanceId}`}
+                description={complaint.addressText}
+                heightClassName="h-[280px]"
+              />
+            </div>
             <p className="mt-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
               {complaint.addressText || 'No additional address or landmark was attached to this complaint.'}
+            </p>
+            <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+              {Number.isFinite(complaint.latitude) && Number.isFinite(complaint.longitude)
+                ? `${complaint.latitude.toFixed(6)}, ${complaint.longitude.toFixed(6)}`
+                : 'Coordinates unavailable'}
             </p>
           </div>
 

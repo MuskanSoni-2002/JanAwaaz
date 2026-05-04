@@ -43,6 +43,9 @@ public class GrievanceService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private FileStorageService fileStorageService;
+
     public Grievance getGrievanceById(Long grievanceId, Authentication authentication){
         Grievance grievance = grievanceRepo.findById(grievanceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grievance not found with id: "+ grievanceId));
@@ -66,19 +69,19 @@ public class GrievanceService {
         Citizen citizen = citizenRepo.findByEmail(citizenEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with email: " + citizenEmail));
 
-        Category category = categoryRepo.findById(request.categoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.categoryId()));
+        Category category = categoryRepo.findById(request.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
 
         Long departmentId = category.getDepartment().getDepartmentId();
 
         Officer assignedOfficer = selectLeastLoadedOfficer(departmentId);
 
         Grievance grievance = new Grievance();
-        grievance.setImageUrl(request.imageUrl());
-        grievance.setDescription(request.description());
-        grievance.setLatitude(request.latitude());
-        grievance.setLongitude(request.longitude());
-        grievance.setAddressText(request.addressText());
+        grievance.setImageUrl(fileStorageService.storeGrievanceImage(request.getImageFile()));
+        grievance.setDescription(request.getDescription());
+        grievance.setLatitude(request.getLatitude());
+        grievance.setLongitude(request.getLongitude());
+        grievance.setAddressText(request.getAddressText());
         grievance.setCreatedAt(LocalDateTime.now());
         grievance.setCitizen(citizen);
         grievance.setCategory(category);
@@ -95,6 +98,8 @@ public class GrievanceService {
         if(assignedOfficer != null){
             notificationService.createOfficerAssignmentNotification(assignedOfficer, savedGrievance);
             notificationService.createCitizenSubmissionNotification(citizen, assignedOfficer, savedGrievance);
+        } else {
+            notificationService.createCitizenSubmissionPendingNotification(citizen, savedGrievance);
         }
         return mapToResponse(savedGrievance);
     }
@@ -105,9 +110,17 @@ public class GrievanceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Grievance not found"));
 
         authorizeGrievanceStatusUpdate(grievance, authentication);
-        grievance.setStatus(status);
+        Status previousStatus = grievance.getStatus();
+        if (previousStatus == status) {
+            return grievance;
+        }
 
-        return grievanceRepo.save(grievance);
+        grievance.setStatus(status);
+        grievance.setUpdatedAt(LocalDateTime.now());
+
+        Grievance savedGrievance = grievanceRepo.save(grievance);
+        notificationService.createCitizenStatusUpdateNotification(savedGrievance, previousStatus);
+        return savedGrievance;
     }
 
     private GrievanceResponseDto mapToResponse(Grievance grievance) {
@@ -156,8 +169,8 @@ public class GrievanceService {
                 .toList();
     }
     public List<GrievanceResponseDto> getGrievancesByOfficerEmail(String officerEmail) {
-        citizenRepo.findByEmail(officerEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with email: " + officerEmail));
+        officerRepo.findByEmail(officerEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Officer not found with email: " + officerEmail));
 
         return grievanceRepo.findByOfficerEmailOrderByCreatedAtDesc(officerEmail)
                 .stream()

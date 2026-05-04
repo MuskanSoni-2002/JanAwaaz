@@ -5,8 +5,9 @@ import {
   ArrowLeft, Loader2, MapPinned, Clock3, UserRound, ImageIcon,
   MessageSquareText, SendHorizontal, RefreshCw, ChevronDown, CheckCircle2,
 } from 'lucide-react';
+import LocationMap from '../../components/maps/LocationMap';
 import officerApi from '../services/officerApi';
-import { getApiErrorMessage } from '../../utils/api';
+import { getApiAssetUrl, getApiErrorMessage } from '../../utils/api';
 import { formatGrievanceStatus, getGrievanceStatusClasses, normalizeGrievance } from '../../utils/grievances';
 
 const ALLOWED_STATUS_TRANSITIONS = {
@@ -32,13 +33,9 @@ export default function OfficerComplaintDetails() {
   const [complaint, setComplaint] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Status update
   const [selectedStatus, setSelectedStatus] = useState('');
   const [remarks, setRemarks] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
-
-  // Comments
   const [commentText, setCommentText] = useState('');
   const [posting, setPosting] = useState(false);
 
@@ -61,13 +58,17 @@ export default function OfficerComplaintDetails() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [id]);
+  useEffect(() => {
+    fetchData();
+  }, [id]);
 
   const refreshComments = async () => {
     try {
-      const r = await officerApi.get(`/grievances/${id}/comments`);
-      setComments(r.data);
-    } catch (e) { console.error(e); }
+      const response = await officerApi.get(`/grievances/${id}/comments`);
+      setComments(response.data);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleStatusUpdate = async () => {
@@ -75,11 +76,10 @@ export default function OfficerComplaintDetails() {
       toast.error('Please select a different status to update.');
       return;
     }
+
     setUpdatingStatus(true);
     try {
-      // Post status change
       await officerApi.patch(`/grievances/${id}/status?status=${selectedStatus}`);
-      // Optionally post remarks as a comment
       if (remarks.trim()) {
         await officerApi.post(`/grievances/${id}/comments`, { content: remarks.trim() });
         setRemarks('');
@@ -93,9 +93,12 @@ export default function OfficerComplaintDetails() {
     }
   };
 
-  const handleAddComment = async (e) => {
-    e.preventDefault();
-    if (!commentText.trim()) return;
+  const handleAddComment = async (event) => {
+    event.preventDefault();
+    if (!commentText.trim()) {
+      return;
+    }
+
     setPosting(true);
     try {
       await officerApi.post(`/grievances/${id}/comments`, { content: commentText.trim() });
@@ -129,14 +132,13 @@ export default function OfficerComplaintDetails() {
   }
 
   const allowedNextStatuses = ALLOWED_STATUS_TRANSITIONS[complaint.status] ?? [];
-  const availableStatuses = ALL_STATUSES.filter((s) =>
-    s.value === complaint.status || allowedNextStatuses.includes(s.value)
+  const availableStatuses = ALL_STATUSES.filter((statusOption) =>
+    statusOption.value === complaint.status || allowedNextStatuses.includes(statusOption.value)
   );
   const canUpdate = allowedNextStatuses.length > 0;
 
   return (
     <div className="space-y-6 animate-fade-rise">
-      {/* Breadcrumb */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link to="/officer/complaints" className="officer-ghost-btn">
           <ArrowLeft className="h-4 w-4" />
@@ -148,9 +150,7 @@ export default function OfficerComplaintDetails() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_360px]">
-        {/* ── Left column ── */}
         <div className="space-y-6">
-          {/* Main detail card */}
           <div className="officer-surface-card p-6 sm:p-8">
             <p className="officer-kicker">Case #{complaint.grievanceId}</p>
             <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-white sm:text-3xl">
@@ -158,7 +158,6 @@ export default function OfficerComplaintDetails() {
             </h2>
             <p className="mt-4 text-sm leading-7 text-slate-400">{complaint.description}</p>
 
-            {/* Image */}
             {complaint.imageUrl && (
               <div className="mt-6">
                 <p className="flex items-center gap-1.5 officer-kicker">
@@ -167,7 +166,7 @@ export default function OfficerComplaintDetails() {
                 </p>
                 <div className="mt-3 overflow-hidden rounded-2xl border border-white/8">
                   <img
-                    src={complaint.imageUrl}
+                    src={getApiAssetUrl(complaint.imageUrl)}
                     alt="Complaint attachment"
                     className="max-h-72 w-full object-cover"
                     onError={(e) => {
@@ -179,11 +178,16 @@ export default function OfficerComplaintDetails() {
               </div>
             )}
 
-            {/* Meta grid */}
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[
                 { icon: Clock3, label: 'Submitted', value: complaint.createdAt ? new Date(complaint.createdAt).toLocaleString('en-IN') : 'N/A' },
-                { icon: MapPinned, label: 'Coordinates', value: complaint.latitude != null ? `${complaint.latitude}, ${complaint.longitude}` : 'Not provided' },
+                {
+                  icon: MapPinned,
+                  label: 'Pinned Location',
+                  value: Number.isFinite(complaint.latitude) && Number.isFinite(complaint.longitude)
+                    ? `${complaint.latitude.toFixed(4)}, ${complaint.longitude.toFixed(4)}`
+                    : 'Not provided',
+                },
                 { icon: UserRound, label: 'Citizen', value: complaint.citizenId ? `ID #${complaint.citizenId}` : 'Unknown' },
               ].map((item) => {
                 const Icon = item.icon;
@@ -199,16 +203,24 @@ export default function OfficerComplaintDetails() {
               })}
             </div>
 
-            {/* Address */}
-            {complaint.addressText && (
-              <div className="officer-surface-card-muted mt-4 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Address / Landmark</p>
-                <p className="mt-1 text-sm text-slate-300">{complaint.addressText}</p>
-              </div>
-            )}
+            <div className="officer-surface-card-muted mt-4 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Address / Landmark</p>
+              <p className="mt-1 text-sm text-slate-300">
+                {complaint.addressText || 'No address or landmark was provided for this grievance.'}
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <LocationMap
+                latitude={complaint.latitude}
+                longitude={complaint.longitude}
+                title={`Grievance #${complaint.grievanceId}`}
+                description={complaint.addressText}
+                heightClassName="h-[300px]"
+              />
+            </div>
           </div>
 
-          {/* Comments section */}
           <div className="officer-surface-card p-6 sm:p-8">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -225,38 +237,36 @@ export default function OfficerComplaintDetails() {
               </button>
             </div>
 
-            {/* Comment list */}
             <div className="mt-6 space-y-4">
               {comments.length === 0 ? (
                 <div className="officer-empty-panel py-10">
                   <MessageSquareText className="h-8 w-8 text-slate-600" />
                   <p className="mt-3 text-sm text-slate-500">No comments yet. Start the conversation.</p>
                 </div>
-              ) : comments.map((cmt) => (
-                <div key={cmt.commentId} className="officer-surface-card-muted flex gap-4 p-4">
+              ) : comments.map((comment) => (
+                <div key={comment.commentId} className="officer-surface-card-muted flex gap-4 p-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600/20 text-sm font-bold text-indigo-300">
-                    {cmt.senderName ? cmt.senderName.charAt(0).toUpperCase() : 'U'}
+                    {comment.senderName ? comment.senderName.charAt(0).toUpperCase() : 'U'}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-white">{cmt.senderName || 'Unknown'}</p>
+                      <p className="text-sm font-semibold text-white">{comment.senderName || 'Unknown'}</p>
                       <span className="text-xs text-slate-500">
-                        {cmt.createdAt ? new Date(cmt.createdAt).toLocaleString('en-IN') : ''}
+                        {comment.createdAt ? new Date(comment.createdAt).toLocaleString('en-IN') : ''}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-slate-300 whitespace-pre-wrap">{cmt.content}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300 whitespace-pre-wrap">{comment.content}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Add comment */}
             <form onSubmit={handleAddComment} className="mt-6 flex gap-3">
               <input
                 type="text"
                 value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Add an update or internal note…"
+                onChange={(event) => setCommentText(event.target.value)}
+                placeholder="Add an update or internal note..."
                 className="officer-field-input flex-1"
               />
               <button
@@ -270,7 +280,6 @@ export default function OfficerComplaintDetails() {
           </div>
         </div>
 
-        {/* ── Right column: Status update ── */}
         <div className="space-y-6">
           <div className="officer-surface-card p-6">
             <div className="flex items-center gap-3">
@@ -293,7 +302,6 @@ export default function OfficerComplaintDetails() {
               </div>
             ) : (
               <div className="mt-6 space-y-4">
-                {/* Current status */}
                 <div className="officer-surface-card-muted p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Current Status</p>
                   <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-semibold ${getGrievanceStatusClasses(complaint.status)}`}>
@@ -301,29 +309,27 @@ export default function OfficerComplaintDetails() {
                   </span>
                 </div>
 
-                {/* New status picker */}
                 <div>
                   <label className="officer-field-label">
                     <ChevronDown className="inline h-3.5 w-3.5" /> Change to
                   </label>
                   <select
                     value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    onChange={(event) => setSelectedStatus(event.target.value)}
                     className="officer-field-input mt-2"
                   >
-                    {availableStatuses.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
+                    {availableStatuses.map((statusOption) => (
+                      <option key={statusOption.value} value={statusOption.value}>{statusOption.label}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* Remarks */}
                 <div>
                   <label className="officer-field-label">Remarks (optional)</label>
                   <textarea
                     value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                    placeholder="Add a note explaining this status change…"
+                    onChange={(event) => setRemarks(event.target.value)}
+                    placeholder="Add a note explaining this status change..."
                     rows={4}
                     className="officer-field-input mt-2 resize-none"
                   />
@@ -336,7 +342,7 @@ export default function OfficerComplaintDetails() {
                   className="officer-primary-btn w-full py-3"
                 >
                   {updatingStatus ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Updating…</>
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Updating...</>
                   ) : (
                     <><RefreshCw className="h-4 w-4" /> Apply Status Change</>
                   )}
@@ -345,14 +351,13 @@ export default function OfficerComplaintDetails() {
             )}
           </div>
 
-          {/* Officer info */}
           <div className="officer-surface-card p-6">
             <p className="officer-kicker">Assignment</p>
             <h3 className="officer-section-title mt-1">Officer Details</h3>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500">Officer ID</span>
-                <span className="font-medium text-white">{complaint.officerId ?? '—'}</span>
+                <span className="font-medium text-white">{complaint.officerId ?? '-'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Name</span>
@@ -360,7 +365,7 @@ export default function OfficerComplaintDetails() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Department</span>
-                <span className="font-medium text-white">{complaint.departmentName ?? '—'}</span>
+                <span className="font-medium text-white">{complaint.departmentName ?? '-'}</span>
               </div>
             </div>
           </div>

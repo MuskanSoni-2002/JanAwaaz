@@ -1,8 +1,8 @@
 package com.example.JanAwaaz.service;
 
 import com.example.JanAwaaz.dto.officer.OfficerCreateRequestDto;
-import com.example.JanAwaaz.dto.officer.OfficerCreateResponseDto;
 import com.example.JanAwaaz.dto.officer.OfficerPasswordUpdateRequestDto;
+import com.example.JanAwaaz.dto.officer.OfficerProfileResponseDto;
 import com.example.JanAwaaz.dto.officer.OfficerPatchRequestDto;
 import com.example.JanAwaaz.exception.ResourceNotFoundException;
 import com.example.JanAwaaz.model.Department;
@@ -11,21 +11,15 @@ import com.example.JanAwaaz.model.enums.UserRole;
 import com.example.JanAwaaz.repository.DepartmentRepository;
 import com.example.JanAwaaz.repository.OfficerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class OfficerService {
-    private static final int TEMP_PASSWORD_LENGTH = 12;
-    private static final String TEMP_PASSWORD_CHARS =
-            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
-
-    private final SecureRandom secureRandom = new SecureRandom();
-
     @Autowired
     private OfficerRepository officerRepo;
 
@@ -38,7 +32,7 @@ public class OfficerService {
     @Autowired
     private DepartmentService departmentService;
 
-    public OfficerCreateResponseDto createOfficer(OfficerCreateRequestDto request) {
+    public OfficerProfileResponseDto createOfficer(OfficerCreateRequestDto request) {
         if (officerRepo.existsByEmail(request.email())) {
             throw new RuntimeException("Email already registered");
         }
@@ -47,46 +41,43 @@ public class OfficerService {
         }
 
         Department department = departmentService.getByDepartmentId(request.departmentId());
-        String temporaryPassword = generateTemporaryPassword();
 
         Officer officer = new Officer();
         officer.setName(request.name());
         officer.setEmail(request.email());
         officer.setPhoneNumber(request.phoneNumber());
-        officer.setPassword(passwordEncoder.encode(temporaryPassword));
+        officer.setPassword(passwordEncoder.encode(request.password()));
         officer.setDesignation(request.designation());
         officer.setActive(request.active() == null ? Boolean.TRUE : request.active());
         officer.setRole(UserRole.OFFICER);
         officer.setForcePasswordChange(Boolean.TRUE);
-        officer.setCreatedAt(LocalDateTime.now());
         officer.setDepartment(department);
 
         Officer savedOfficer = officerRepo.save(officer);
 
-        return new OfficerCreateResponseDto(
-                savedOfficer.getOfficerId(),
-                savedOfficer.getName(),
-                savedOfficer.getEmail(),
-                savedOfficer.getPhoneNumber(),
-                savedOfficer.getDesignation(),
-                savedOfficer.getDepartment().getDepartmentId(),
-                savedOfficer.getRole(),
-                savedOfficer.getActive(),
-                savedOfficer.getForcePasswordChange(),
-                temporaryPassword
-        );
+        return mapToProfileResponse(savedOfficer);
     }
 
-    public Officer getOfficerById(Long officerId) {
+    public OfficerProfileResponseDto getOfficerProfileByEmail(String email) {
+        Officer officer = officerRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Officer not found with email: " + email));
+
+        return mapToProfileResponse(officer);
+    }
+
+    public OfficerProfileResponseDto getOfficerById(Long officerId) {
         return officerRepo.findById(officerId)
+                .map(this::mapToProfileResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Officer not found with id: " + officerId));
     }
 
-    public List<Officer> getAllOfficers() {
-        return officerRepo.findAll();
+    public List<OfficerProfileResponseDto> getAllOfficers() {
+        return officerRepo.findAll().stream()
+                .map(this::mapToProfileResponse)
+                .toList();
     }
 
-    public Officer patchOfficer(OfficerPatchRequestDto officer, Long officerId) {
+    public OfficerProfileResponseDto patchOfficer(OfficerPatchRequestDto officer, Long officerId) {
         Officer existingOfficer = officerRepo.findById(officerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Officer not found with id: " + officerId));
 
@@ -121,14 +112,16 @@ public class OfficerService {
             existingOfficer.setDepartment(department);
         }
 
-        existingOfficer.setUpdatedAt(LocalDateTime.now());
-
-        return officerRepo.save(existingOfficer);
+        return mapToProfileResponse(officerRepo.save(existingOfficer));
     }
 
-    public void updateOfficerPassword(Long officerId, OfficerPasswordUpdateRequestDto request) {
+    public void updateOfficerPassword(Long officerId, String email, OfficerPasswordUpdateRequestDto request) {
         Officer existingOfficer = officerRepo.findById(officerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Officer not found with id: " + officerId));
+
+        if (!existingOfficer.getEmail().equalsIgnoreCase(email)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot update another officer's password");
+        }
 
         if (existingOfficer.getPassword() == null || existingOfficer.getPassword().isBlank()) {
             throw new RuntimeException("Officer password is not initialized");
@@ -152,7 +145,6 @@ public class OfficerService {
 
         existingOfficer.setPassword(passwordEncoder.encode(request.newPassword()));
         existingOfficer.setForcePasswordChange(Boolean.FALSE);
-        existingOfficer.setUpdatedAt(LocalDateTime.now());
 
         officerRepo.save(existingOfficer);
     }
@@ -165,14 +157,20 @@ public class OfficerService {
         officerRepo.save(existingOfficer);
     }
 
-    private String generateTemporaryPassword() {
-        StringBuilder password = new StringBuilder(TEMP_PASSWORD_LENGTH);
+    private OfficerProfileResponseDto mapToProfileResponse(Officer officer) {
+        Department department = officer.getDepartment();
 
-        for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
-            int index = secureRandom.nextInt(TEMP_PASSWORD_CHARS.length());
-            password.append(TEMP_PASSWORD_CHARS.charAt(index));
-        }
-
-        return password.toString();
+        return new OfficerProfileResponseDto(
+                officer.getOfficerId(),
+                officer.getName(),
+                officer.getEmail(),
+                officer.getPhoneNumber(),
+                officer.getDesignation(),
+                department == null ? null : department.getDepartmentId(),
+                department == null ? null : department.getDepartmentName(),
+                officer.getRole(),
+                officer.getActive(),
+                officer.getForcePasswordChange()
+        );
     }
 }

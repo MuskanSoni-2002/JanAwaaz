@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import { useMemo, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {

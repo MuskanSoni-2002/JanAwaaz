@@ -23,6 +23,9 @@ public record OfficerCreateRequestDto(
         @NotNull(message = "Department id is required")
         Long departmentId,
 
+        @NotBlank(message = "Password is required")
+        String password,
+
         Boolean active
 ) {
 }

@@ -4,11 +4,9 @@ import com.example.JanAwaaz.dto.citizen.CitizenAddressUpdateRequestDto;
 import com.example.JanAwaaz.dto.citizen.CitizenProfileResponseDto;
 import com.example.JanAwaaz.dto.citizen.CitizenProfileUpdateRequestDto;
 import com.example.JanAwaaz.exception.DuplicateResourceException;
-import com.example.JanAwaaz.model.Address;
 import com.example.JanAwaaz.model.Citizen;
 import com.example.JanAwaaz.model.enums.Gender;
 import com.example.JanAwaaz.model.enums.UserRole;
-import com.example.JanAwaaz.repository.AddressRepository;
 import com.example.JanAwaaz.repository.CitizenRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,9 +29,6 @@ class CitizenServiceTest {
 
     @Mock
     private CitizenRepository citizenRepo;
-
-    @Mock
-    private AddressRepository addressRepo;
 
     @InjectMocks
     private CitizenService citizenService;
@@ -59,7 +54,6 @@ class CitizenServiceTest {
         );
 
         assertEquals(400, exception.getStatusCode().value());
-        verify(addressRepo, never()).save(any(Address.class));
         verify(citizenRepo, never()).save(any(Citizen.class));
     }
 
@@ -115,15 +109,8 @@ class CitizenServiceTest {
     @Test
     void patchCitizenProfileCreatesAddressWhenRequiredFieldsProvided() {
         Citizen citizen = buildCitizen();
-        Address savedAddress = new Address();
-        savedAddress.setAddressId(21L);
-        savedAddress.setAddressLine1("221B Baker Street");
-        savedAddress.setCity("Delhi");
-        savedAddress.setState("Delhi");
-        savedAddress.setPincode("110001");
 
         when(citizenRepo.findByEmail("old@example.com")).thenReturn(Optional.of(citizen));
-        when(addressRepo.save(any(Address.class))).thenReturn(savedAddress);
         when(citizenRepo.save(any(Citizen.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CitizenProfileResponseDto response = citizenService.patchCitizenProfileByEmail(

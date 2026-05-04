@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './components/ThemeProvider.jsx';
 import { store } from './store/store.js';
 import { initializeTheme } from './utils/theme.js';
+import 'leaflet/dist/leaflet.css';
 import './index.css';
 import App from './App.jsx';
 
