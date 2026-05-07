@@ -12,6 +12,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useOfficerAuth } from '../context/OfficerAuthContext';
+import { useNotifications } from '../context/NotificationContext';
+import NotificationPanel from '../components/NotificationPanel';
 
 const navItems = [
   { name: 'Dashboard', path: '/officer/dashboard', icon: LayoutDashboard },
@@ -39,6 +41,8 @@ export default function OfficerLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
   const handleLogout = () => {
     logout();
@@ -178,8 +182,17 @@ export default function OfficerLayout() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="officer-icon-btn" aria-label="Notifications">
+            <button
+              className="officer-icon-btn relative"
+              onClick={() => setNotificationPanelOpen(true)}
+              aria-label="Notifications"
+            >
               <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-slate-950">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
             <div className="officer-avatar-sm hidden sm:flex">{initials}</div>
           </div>
@@ -190,6 +203,11 @@ export default function OfficerLayout() {
           <Outlet />
         </main>
       </div>
+
+      <NotificationPanel
+        isOpen={notificationPanelOpen}
+        onClose={() => setNotificationPanelOpen(false)}
+      />
     </div>
   );
 }

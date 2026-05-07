@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -14,12 +14,16 @@ import {
 } from 'lucide-react';
 import { logout } from '../features/authSlice';
 import { ThemeContext } from '../context/theme-context';
+import { useCitizenNotifications } from '../context/CitizenNotificationContext';
+import CitizenNotificationPanel from '../components/CitizenNotificationPanel';
 
 const DashboardLayout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useSelector((state) => state.auth.user);
+  const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
+  const { unreadCount } = useCitizenNotifications();
   const themeContext = useContext(ThemeContext);
   const isDarkTheme = themeContext?.isDarkTheme ?? false;
   const toggleTheme = themeContext?.toggleTheme ?? (() => {});
@@ -188,8 +192,17 @@ const DashboardLayout = () => {
                     ? <SunMedium className="h-4.5 w-4.5" />
                     : <MoonStar className="h-4.5 w-4.5" />}
                 </button>
-                <button className="secondary-btn h-11 w-11 rounded-2xl px-0" aria-label="Notifications">
+                <button
+                  onClick={() => setNotificationPanelOpen(true)}
+                  className="secondary-btn relative h-11 w-11 rounded-2xl px-0"
+                  aria-label="Notifications"
+                >
                   <BellDot className="h-4.5 w-4.5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-950">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -226,6 +239,11 @@ const DashboardLayout = () => {
           </div>
         </div>
       </div>
+
+      <CitizenNotificationPanel
+        isOpen={notificationPanelOpen}
+        onClose={() => setNotificationPanelOpen(false)}
+      />
     </div>
   );
 };

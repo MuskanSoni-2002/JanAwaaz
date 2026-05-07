@@ -1,0 +1,102 @@
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { citizenNotificationService } from '../services/citizenNotificationService';
+
+const CitizenNotificationContext = createContext(null);
+
+const getNotificationId = (notification) => notification.notificationId ?? notification.id;
+
+export function CitizenNotificationProvider({ children }) {
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await citizenNotificationService.getNotifications();
+      setNotifications(Array.isArray(data) ? data : []);
+      const unread = (Array.isArray(data) ? data : []).filter((n) => !n.isRead).length;
+      setUnreadCount(unread);
+    } catch (err) {
+      // Silently fail for notifications - don't let it break the app
+      console.warn('Failed to fetch notifications:', err?.message);
+      setError(null); // Don't set error to avoid UI issues
+      setNotifications([]);
+      setUnreadCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Mark notification as read
+  const markAsRead = useCallback(
+    async (notificationId) => {
+      try {
+        await citizenNotificationService.markAsRead(notificationId);
+        setNotifications((prev) =>
+          prev.map((n) => (n.notificationId === notificationId ? { ...n, isRead: true } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      } catch (err) {
+        setError(err.message || 'Failed to mark notification as read');
+        console.error('Error marking notification as read:', err);
+      }
+    },
+    []
+  );
+
+  // Mark all as read
+  const markAllAsRead = useCallback(async () => {
+    const unreadIds = notifications
+      .filter((n) => !n.isRead)
+      .map(getNotificationId)
+      .filter(Boolean);
+    if (unreadIds.length === 0) return;
+
+    try {
+      await citizenNotificationService.markAllAsRead(unreadIds);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      setError(err.message || 'Failed to mark all as read');
+      console.error('Error marking all as read:', err);
+    }
+  }, [notifications]);
+
+  // Fetch notifications on mount
+  useEffect(() => {
+    fetchNotifications();
+
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  return (
+    <CitizenNotificationContext.Provider
+      value={{
+        notifications,
+        unreadCount,
+        isLoading,
+        error,
+        fetchNotifications,
+        markAsRead,
+        markAllAsRead,
+      }}
+    >
+      {children}
+    </CitizenNotificationContext.Provider>
+  );
+}
+
+export function useCitizenNotifications() {
+  const context = useContext(CitizenNotificationContext);
+  if (!context) {
+    throw new Error('useCitizenNotifications must be used within CitizenNotificationProvider');
+  }
+  return context;
+}

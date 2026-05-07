@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AuthGuard from './components/AuthGuard';
 import DashboardLayout from './layouts/DashboardLayout';
+import { CitizenNotificationProvider } from './context/CitizenNotificationContext';
 
 // Citizen pages
 import Login from './pages/Login';
@@ -15,6 +16,7 @@ import ComplaintDetails from './pages/ComplaintDetails';
 
 // Officer portal
 import { OfficerAuthProvider } from './officer/context/OfficerAuthContext';
+import { NotificationProvider } from './officer/context/NotificationContext';
 import OfficerGuard from './officer/components/OfficerGuard';
 import OfficerLayout from './officer/layouts/OfficerLayout';
 import OfficerLogin from './officer/pages/OfficerLogin';
@@ -42,7 +44,13 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route element={<AuthGuard />}>
-          <Route element={<DashboardLayout />}>
+          <Route
+            element={
+              <CitizenNotificationProvider>
+                <DashboardLayout />
+              </CitizenNotificationProvider>
+            }
+          >
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
@@ -60,7 +68,13 @@ function App() {
               <Routes>
                 <Route path="login" element={<OfficerLogin />} />
                 <Route element={<OfficerGuard />}>
-                  <Route element={<OfficerLayout />}>
+                  <Route
+                    element={
+                      <NotificationProvider>
+                        <OfficerLayout />
+                      </NotificationProvider>
+                    }
+                  >
                     <Route path="dashboard" element={<OfficerDashboard />} />
                     <Route path="complaints" element={<OfficerComplaints />} />
                     <Route path="complaints/:id" element={<OfficerComplaintDetails />} />
